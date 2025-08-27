@@ -252,7 +252,7 @@
       resultadoDiv.textContent = "Enviando análise… aguarde.";
 
       try {
-        const resp = await fetch("http://api42.logyc.com.br/webhook/804de795-6b93-43ad-b505-10841a564c83", {
+        const resp = await fetch("https://api42.logyc.com.br/webhook/804de795-6b93-43ad-b505-10841a564c83", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
