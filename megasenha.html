@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>megasenha generator</title>
+  </head>
+  <body>
+    <pre id="out"></pre>
+
+    <script>
+      const texto = `
+      1. Cachorro
+
+
+2. Gato
+
+
+3. Elefante
+
+
+4. Girafa
+
+
+5. Tubarão
+
+
+6. Leão
+
+
+7. Tigre
+
+
+8. Zebra
+
+
+9. Coelho
+
+
+10. Macaco
+
+
+11. Avião
+
+
+12. Carro
+
+
+13. Moto
+
+
+14. Bicicleta
+
+
+15. Ônibus
+
+
+16. Trem
+
+
+17. Barco
+
+
+18. Helicóptero
+
+
+19. Submarino
+
+
+20. Foguete
+
+
+21. Computador
+
+
+22. Celular
+
+
+23. Televisão
+
+
+24. Controle
+
+
+25. Teclado
+
+
+26. Mouse
+
+
+27. Internet
+
+
+28. Aplicativo
+
+
+29. Senha
+
+
+30. Wi-Fi
+
+
+31. Pizza
+
+
+32. Hambúrguer
+
+
+33. Sorvete
+
+
+34. Chocolate
+
+
+35. Brigadeiro
+
+
+36. Lasanha
+
+
+37. Arroz
+
+
+38. Feijão
+
+
+39. Macarrão
+
+
+40. Salada
+
+
+41. Escola
+
+
+42. Professor
+
+
+43. Aluno
+
+
+44. Prova
+
+
+45. Caderno
+
+
+46. Caneta
+
+
+47. Lápis
+
+
+48. Mochila
+
+
+49. Biblioteca
+
+
+50. Faculdade
+
+
+51. Hospital
+
+
+52. Médico
+
+
+53. Enfermeiro
+
+
+54. Remédio
+
+
+55. Cirurgia
+
+
+56. Ambulância
+
+
+57. Termômetro
+
+
+58. Dor
+
+
+59. Febre
+
+
+60. Curativo
+
+
+61. Praia
+
+
+62. Montanha
+
+
+63. Floresta
+
+
+64. Deserto
+
+
+65. Ilha
+
+
+66. Rio
+
+
+67. Cachoeira
+
+
+68. Vulcão
+
+
+69. Neve
+
+
+70. Tempestade
+
+
+71. Amor
+
+
+72. Ódio
+
+
+73. Felicidade
+
+
+74. Tristeza
+
+
+75. Medo
+
+
+76. Coragem
+
+
+77. Vergonha
+
+
+78. Orgulho
+
+
+79. Ansiedade
+
+
+80. Saudade
+
+
+81. Futebol
+
+
+82. Basquete
+
+
+83. Vôlei
+
+
+84. Natação
+
+
+85. Corrida
+
+
+86. Academia
+
+
+87. Gol
+
+
+88. Torcida
+
+
+89. Medalha
+
+
+90. Campeão
+
+
+91. Super-herói
+
+
+92. Vilão
+
+
+93. Dragão
+
+
+94. Vampiro
+
+
+95. Zumbi
+
+
+96. Fantasma
+
+
+97. Bruxa
+
+
+98. Alienígena
+
+
+99. Robô
+
+
+100. Dinossauro
+
+
+101. Relógio
+
+
+102. Espelho
+
+
+103. Janela
+
+
+104. Porta
+
+
+105. Sofá
+
+
+106. Cama
+
+
+107. Travesseiro
+
+
+108. Geladeira
+
+
+109. Fogão
+
+
+110. Micro-ondas
+
+
+111. Chuva
+
+
+112. Sol
+
+
+113. Lua
+
+
+114. Estrela
+
+
+115. Arco-íris
+
+
+116. Nuvem
+
+
+117. Vento
+
+
+118. Raio
+
+
+119. Trovão
+
+
+120. Céu
+
+
+121. Dinheiro
+
+
+122. Banco
+
+
+123. Cartão
+
+
+124. Pix
+
+
+125. Salário
+
+
+126. Cofre
+
+
+127. Rico
+
+
+128. Pobre
+
+
+129. Dívida
+
+
+130. Promoção
+
+
+131. Polícia
+
+
+132. Bombeiro
+
+
+133. Advogado
+
+
+134. Juiz
+
+
+135. Prisão
+
+
+136. Ladrão
+
+
+137. Mistério
+
+
+138. Segredo
+
+
+139. Investigação
+
+
+140. Crime
+
+
+141. Festa
+
+
+142. Música
+
+
+143. Dança
+
+
+144. Show
+
+
+145. Filme
+
+
+146. Série
+
+
+147. Teatro
+
+
+148. Palco
+
+
+149. Plateia
+
+
+150. Aplauso
+
+
+151. Amizade
+
+
+152. Família
+
+
+153. Irmão
+
+
+154. Primo
+
+
+155. Avó
+
+
+156. Tio
+
+
+157. Vizinho
+
+
+158. Namoro
+
+
+159. Casamento
+
+
+160. Divórcio
+
+
+161. Universo
+
+
+162. Planeta
+
+
+163. Marte
+
+
+164. Terra
+
+
+165. Galáxia
+
+
+166. Astronauta
+
+
+167. Estação
+
+
+168. Satélite
+
+
+169. Gravidade
+
+
+170. Órbita
+
+
+171. Livro
+
+
+172. História
+
+
+173. Desenho
+
+
+174. Pintura
+
+
+175. Arte
+
+
+176. Fotografia
+
+
+177. Poesia
+
+
+178. Música
+
+
+179. Guitarra
+
+
+180. Microfone
+
+
+181. Energia
+
+
+182. Fogo
+
+
+183. Água
+
+
+184. Terra
+
+
+185. Ar
+
+
+186. Luz
+
+
+187. Sombra
+
+
+188. Silêncio
+
+
+189. Barulho
+
+
+190. Eco
+
+
+191. Jogo
+
+
+192. Desafio
+
+
+193. Vitória
+
+
+194. Derrota
+
+
+195. Sorte
+
+
+196. Azar
+
+
+197. Tempo
+
+
+198. Futuro
+
+
+199. Passado
+
+
+200. Presente
+`;
+
+      function fisherYatesShuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+      }
+
+      const linhas = texto.split(/\r?\n/);
+
+      const itens = [];
+      for (const raw of linhas) {
+        const linha = raw.trim();
+        if (!linha) continue;
+
+        const idx = linha.indexOf(".");
+        if (idx === -1) continue; 
+
+        const item = linha.slice(idx + 1).trim();
+        if (!item) continue;
+
+        itens.push(item);
+      }
+
+      fisherYatesShuffle(itens);
+
+      const saida = itens.map((item, i) => `${i + 1}. ${item}`).join("\n");
+      document.getElementById("out").textContent = saida;
+    </script>
+  </body>
+</html>
+
