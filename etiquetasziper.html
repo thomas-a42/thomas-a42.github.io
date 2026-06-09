@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Etiquetas de Zíper - Versão Final Estabilizada</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+  <style>
+    :root {
+      --border-color: #727d8c;
+      --teal-text: #0e8493;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e9ecef;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* === INTERFACE ESTRUTURAL === */
+    .app-container {
+      display: block;
+    }
+
+    .sidebar {
+      width: 340px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      background: #fff;
+      box-shadow: 3px 0 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .sidebar h3 {
+      margin-top: 0;
+      font-family: 'Poppins', sans-serif;
+      color: #333;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 10px;
+    }
+
+    .sidebar-desc {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+
+    .main-content {
+      margin-left: 360px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* === MENU DO TOPO FLUTUANTE / FIXO === */
+    .top-bar {
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 6px;
+      margin-bottom: 25px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+      position: sticky;
+      top: 15px;
+      z-index: 5;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+
+    .input-group label {
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .input-group input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* === GERENCIADOR DE LISTA DE CORES === */
+    #color-list {
+      margin-bottom: 15px;
+    }
+
+    .color-item {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-item.sortable-chosen {
+      background-color: #e2e6ea;
+    }
+    .color-item.sortable-ghost {
+      opacity: 0.4;
+    }
+
+    .drag-handle {
+      color: #adb5bd;
+      font-size: 20px;
+      cursor: grab;
+      user-select: none;
+      padding: 0 5px;
+    }
+
+    .input-cor-box {
+      width: 60px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .custom-color-container {
+      display: flex;
+      align-items: center;
+    }
+
+    .input-hex-box {
+      width: 50px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .color-item-preview {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid #ccc;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    body.full-page-active .quantity-group {
+      display: none !important;
+    }
+
+    .input-qtd-box {
+      width: 50px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #dc3545;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: auto;
+      padding: 5px 8px;
+      border-radius: 4px;
+    }
+    .remove-btn:hover {
+      background-color: #f8d7da;
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #28a745;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .print-btn {
+      padding: 12px 25px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      background-color: #dc3545;
+      color: white;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .print-btn:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    /* === PARÂMETROS DE VISUALIZAÇÃO DA FOLHA A4 === */
+    #print-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px; 
+    }
+
+    .print-page {
+      width: 21cm;
+      height: 29.7cm; 
+      background: white;
+      box-sizing: border-box;
+      
+      /* Centralização Box Model travada e cirúrgica */
+      padding-top: 0.55cm;
+      padding-left: 1.0cm;
+      
+      box-shadow: 0 0 12px rgba(0,0,0,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* === BLINDAGEM DO PDF === */
+    #print-area.pdf-export {
+      display: block !important;
+      gap: 0 !important;
+    }
+    #print-area.pdf-export .print-page {
+      margin: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      display: block !important;
+    }
+
+    .page-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2cm;
+      width: 19cm; 
+    }
+
+    .row-vertical {
+      display: flex;
+      flex-direction: row;
+      gap: 0.2cm;
+    }
+
+    .row-horizontal {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2cm;
+    }
+
+    /* === MEDIDAS DA ETIQUETA === */
+    .wrapper-vertical {
+      width: 3cm;
+      height: 11cm;
+      position: relative;
+    }
+    .wrapper-horizontal {
+      width: 11cm;
+      height: 3cm;
+      position: relative;
+    }
+
+    .label-box {
+      width: 11cm;
+      height: 3cm;
+      border: 1px solid var(--border-color);
+      box-sizing: border-box;
+      display: flex;
+      background-color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+    }
+
+    .wrapper-vertical .label-box {
+      position: absolute;
+      transform-origin: top left;
+      transform: rotate(90deg) translateY(-100%);
+      margin: 0; 
+    }
+
+    .label-info {
+      width: 5.8cm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 0.2cm;
+      box-sizing: border-box;
+    }
+
+    .l-ziper {
+      font-size: 14.9pt;
+      line-height: 1;
+      color: #000;
+    }
+
+    .l-name {
+      font-size: 13.9pt;
+      line-height: 1.2;
+      color: var(--teal-text);
+      margin-top: 2px;
+    }
+
+    .l-details {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 6px;
+    }
+
+    .l-size {
+      font-size: 12.3pt;
+      line-height: 1;
+      color: #000;
+    }
+
+    .l-color-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .l-color-label {
+      font-size: 12.3pt;
+      line-height: 1;
+      color: #000;
+    }
+
+    .l-color-value {
+      font-size: 12.3pt;
+      line-height: 1;
+      color: var(--color-hex);
+    }
+
+    .l-color-circle {
+      width: 12.3pt;
+      height: 12.3pt;
+      border-radius: 50%;
+      background-color: var(--color-hex);
+      display: inline-block;
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact; 
+    }
+
+    /* Exceção Branca (501) */
+    .label-box.white-exception .l-color-value {
+      color: #000000 !important;
+    }
+    .label-box.white-exception .l-color-circle {
+      border: 0.5mm solid #000000 !important;
+    }
+
+    .label-divider {
+      width: 0;
+      border-left: 2px solid #000;
+      height: 100%;
+    }
+
+    .label-barcode {
+      flex: 1; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 8px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .barcode-canvas {
+      max-width: 95%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+  </style>
+</head>
+<body class="full-page-active">
+
+  <div class="app-container">
+    
+    <div class="sidebar">
+      <h3>Gerador de Etiquetas de Zíper</h3>
+      <div class="sidebar-desc">
+        Insira os códigos abaixo. Clique e arraste no ícone ☰ para organizar a ordem das cores.
+      </div>
+      
+      <div id="color-list"></div>
+      
+      <button class="add-btn" onclick="adicionarNovaCor()">+ Adicionar Nova Cor</button>
+    </div>
+
+    <div class="main-content">
+      
+      <div class="top-bar">
+        <div class="input-group">
+          <label>Nome do Zíper</label>
+          <input type="text" id="inNome" value="Nome do Zíper" oninput="gerarEstruturaLote()">
+        </div>
+        <div class="input-group">
+          <label>Tamanho (cm)</label>
+          <input type="text" id="inTamanho" value="00" style="width: 80px;" oninput="gerarEstruturaLote()">
+        </div>
+        <div class="input-group">
+          <label>Cód. Geral</label>
+          <input type="text" id="inGeral" value="0000" style="width: 80px;" oninput="gerarEstruturaLote()">
+        </div>
+        
+        <div class="input-group" style="flex-direction: row; align-items: center; gap: 8px; margin-top: 18px; background: #f1f3f5; padding: 8px 12px; border-radius: 4px; border: 1px solid #ced4da;">
+          <input type="checkbox" id="chkPaginaCompleta" checked onchange="toggleModoPagina()" style="width: 18px; height: 18px; cursor: pointer;">
+          <label for="chkPaginaCompleta" style="margin-bottom: 0; cursor: pointer; font-size: 14px; user-select: none;">Página Completa</label>
+        </div>
+        
+        <button class="print-btn" onclick="baixarPDFLote()" id="btnDownload">Baixar PDF Completo</button>
+      </div>
+
+      <div id="print-area"></div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const catalogoCores = {
+      "008": "#89776e",
+      "010": "#c4c0ba",
+      "015": "#2b3d52",
+      "017": "#142029",
+      "025": "#a64b4c",
+      "045": "#bc473a",
+      "052": "#49a83a",
+      "057": "#ffb09f",
+      "072": "#614f42",
+      "082": "#ca6a98",
+      "109": "#8f8d68",
+      "110": "#a7bc91",
+      "112": "#d6e1f1",
+      "119": "#8e9cc3",
+      "129": "#fce2aa",
+      "138": "#d85c4c",
+      "166": "#bf3951",
+      "169": "#0a102f",
+      "178": "#f8d997",
+      "188": "#9a755e",
+      "206": "#714f63",
+      "217": "#423e56",
+      "221": "#b895a4",
+      "224": "#424671",
+      "226": "#424671",
+      "237": "#282e2f",
+      "241": "#a67632",
+      "254": "#3d2044",
+      "260": "#4881d8",
+      "269": "#a85d7e",
+      "274": "#ffdbe3",
+      "301": "#1f232d",
+      "312": "#cc3483",
+      "317": "#1a2b4b",
+      "326": "#424c71",
+      "331": "#583a35",
+      "349": "#187e9c",
+      "501": "#ffffff",
+      "502": "#ecece8",
+      "503": "#eeecb1",
+      "504": "#fae729",
+      "505": "#f8dea4",
+      "506": "#ffc41a",
+      "507": "#eebb70",
+      "508": "#a8854f",
+      "510": "#b6a13b",
+      "511": "#fce7fc",
+      "512": "#ffd1eb",
+      "513": "#ffa6d5",
+      "515": "#da72a8",
+      "516": "#cc1e60",
+      "519": "#b81b30",
+      "520": "#78001c",
+      "522": "#ff9878",
+      "523": "#ee4e1a",
+      "524": "#861767",
+      "527": "#4f0014",
+      "528": "#467b1f",
+      "530": "#274e51",
+      "532": "#b2eab9",
+      "533": "#90e8ea",
+      "534": "#61c8bb",
+      "535": "#bcff54",
+      "537": "#607e29",
+      "539": "#196d6e",
+      "540": "#09714e",
+      "542": "#a1d0f4",
+      "543": "#a2dfeb",
+      "545": "#7ab6e4",
+      "547": "#41abde",
+      "548": "#1fa1b2",
+      "549": "#1470ac",
+      "550": "#08579e",
+      "551": "#d9d1bd",
+      "552": "#e3ccf9",
+      "553": "#918ade",
+      "555": "#568cc4",
+      "558": "#172c57",
+      "559": "#39377c",
+      "560": "#01112e",
+      "562": "#4e5452",
+      "565": "#433e30",
+      "566": "#374928",
+      "568": "#4a302c",
+      "570": "#2b1c1e",
+      "571": "#e1ddd8",
+      "572": "#c0b9b3",
+      "573": "#bead8d",
+      "576": "#adb1bf",
+      "578": "#4c566f",
+      "579": "#182944",
+      "580": "#000000",
+      "805": "#e7d4be",
+      "807": "#d57b4b",
+      "808": "#9c4822",
+      "809": "#66342a",
+      "811": "#ffcff1",
+      "812": "#f09fa9",
+      "813": "#d97282",
+      "819": "#d82d33",
+      "820": "#c72647",
+      "824": "#25c3a0",
+      "839": "#244478",
+      "846": "#d8a553",
+      "848": "#cf8a26",
+      "853": "#730f50",
+      "856": "#9e5c2e",
+      "859": "#683e1e",
+      "861": "#e7e3ff",
+      "875": "#b8d15c",
+      "881": "#dbe7cd",
+      "885": "#87775a",
+      "886": "#676560",
+      "892": "#b79f7f",
+      "896": "#928672",
+      "908": "#15384f",
+      "920": "#081f4d",
+      "917": "#221b23",
+      "918": "#003dbf",
+      "910": "#0d2541"
+    };
+
+    window.onload = function() {
+      const listaCoresDOM = document.getElementById('color-list');
+      Sortable.create(listaCoresDOM, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: function() {
+          gerarEstruturaLote();
+        }
+      });
+
+      adicionarItemDOM("000", "");
+      gerarEstruturaLote();
+    };
+
+    function toggleModoPagina() {
+      const chk = document.getElementById('chkPaginaCompleta');
+      if (chk.checked) {
+        document.body.classList.add('full-page-active');
+      } else {
+        document.body.classList.remove('full-page-active');
+      }
+      gerarEstruturaLote();
+    }
+
+    function adicionarNovaCor() {
+      adicionarItemDOM("000", "");
+      gerarEstruturaLote();
+    }
+
+    function adicionarItemDOM(codigoDefault, hexDefault) {
+      const lista = document.getElementById('color-list');
+      const itemRow = document.createElement('div');
+      itemRow.className = 'color-item';
+
+      itemRow.innerHTML = `
+        <span class="drag-handle">☰</span>
+        <div class="input-group">
+          <input type="text" class="input-cor-box" value="${codigoDefault}" placeholder="Cód" oninput="gerarEstruturaLote()">
+        </div>
+        <div class="custom-color-container" style="display: none;">
+          <input type="color" class="input-hex-box" value="${hexDefault || '#ff0000'}" oninput="gerarEstruturaLote()">
+        </div>
+        <span class="color-item-preview"></span>
+        
+        <div class="input-group quantity-group">
+          <input type="number" class="input-qtd-box" value="1" min="1" placeholder="Qtd" oninput="gerarEstruturaLote()">
+        </div>
+        
+        <button class="remove-btn" onclick="removerItemDOM(this)">✕</button>
+      `;
+
+      lista.appendChild(itemRow);
+    }
+
+    function removerItemDOM(btn) {
+      btn.closest('.color-item').remove();
+      gerarEstruturaLote();
+    }
+
+    function fabricarNodeEtiqueta(nome, tamanho, cor, hex, isVertical, codeString) {
+      const wrapper = document.createElement('div');
+      wrapper.className = isVertical ? 'wrapper-vertical' : 'wrapper-horizontal';
+      const classeExcecao = (cor === "501") ? "white-exception" : "";
+
+      wrapper.innerHTML = `
+        <div class="label-box ${classeExcecao}" style="--color-hex: ${hex};">
+            <div class="label-info">
+                <div class="l-ziper">Zíper</div>
+                <div class="l-name">${nome}</div>
+                <div class="l-details">
+                    <span class="l-size">${tamanho} cm</span>
+                    <div class="l-color-group">
+                        <span class="l-color-label">Cor</span>
+                        <span class="l-color-value">${cor}</span>
+                        <span class="l-color-circle"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="label-divider"></div>
+            <div class="label-barcode">
+                <canvas class="barcode-canvas"></canvas>
+            </div>
+        </div>
+      `;
+
+      const canvas = wrapper.querySelector('.barcode-canvas');
+      JsBarcode(canvas, codeString, {
+        format: "CODE128",
+        displayValue: true,
+        fontSize: 18,
+        lineColor: "#000",
+        width: 2,
+        height: 80,
+        margin: 10,
+        background: "transparent"
+      });
+
+      return wrapper;
+    }
+
+    function gerarEstruturaLote() {
+      const nome = document.getElementById('inNome').value.trim() || 'Zíper';
+      const tamanho = document.getElementById('inTamanho').value.trim() || '00';
+      const geral = document.getElementById('inGeral').value.trim() || '0000';
+      const isModoPaginaCompleta = document.getElementById('chkPaginaCompleta').checked;
+
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = ''; 
+
+      const itensCor = document.querySelectorAll('.color-item');
+      const listaCoresInfo = [];
+
+      itensCor.forEach((item) => {
+        const inputCor = item.querySelector('.input-cor-box');
+        const customColorGroup = item.querySelector('.custom-color-container');
+        const inputHex = item.querySelector('.input-hex-box');
+        const previewDot = item.querySelector('.color-item-preview');
+        const inputQtd = item.querySelector('.input-qtd-box');
+
+        const cor = inputCor.value.trim() || '000';
+        const corPreDefinida = catalogoCores[cor];
+        let hex;
+
+        if (corPreDefinida) {
+          customColorGroup.style.display = 'none';
+          hex = corPreDefinida;
+          inputHex.value = hex; 
+        } else {
+          customColorGroup.style.display = 'flex';
+          hex = inputHex.value;
+        }
+
+        previewDot.style.backgroundColor = hex;
+        if(cor === "501" || hex.toLowerCase() === "#ffffff") {
+          previewDot.style.border = "1px solid #000";
+        } else {
+          previewDot.style.border = "1px solid #ccc";
+        }
+
+        let qtd = parseInt(inputQtd.value) || 1;
+        if (qtd < 1) qtd = 1;
+
+        listaCoresInfo.push({
+          cor: cor,
+          hex: hex,
+          qtd: qtd,
+          codeString: `${geral}${tamanho}${cor}`
+        });
+      });
+
+      if (isModoPaginaCompleta) {
+        listaCoresInfo.forEach((info) => {
+          const printPageA4 = document.createElement('div');
+          printPageA4.className = 'print-page';
+          const pageContent = document.createElement('div');
+          pageContent.className = 'page-content';
+
+          const row1 = document.createElement('div'); row1.className = 'row-vertical';
+          const row2 = document.createElement('div'); row2.className = 'row-vertical';
+          const row3 = document.createElement('div'); row3.className = 'row-horizontal';
+
+          for(let i=0; i<6; i++) row1.appendChild(fabricarNodeEtiqueta(nome, tamanho, info.cor, info.hex, true, info.codeString));
+          for(let i=0; i<6; i++) row2.appendChild(fabricarNodeEtiqueta(nome, tamanho, info.cor, info.hex, true, info.codeString));
+          for(let i=0; i<2; i++) row3.appendChild(fabricarNodeEtiqueta(nome, tamanho, info.cor, info.hex, false, info.codeString));
+
+          pageContent.appendChild(row1);
+          pageContent.appendChild(row2);
+          pageContent.appendChild(row3);
+          printPageA4.appendChild(pageContent);
+          printArea.appendChild(printPageA4);
+        });
+      } else {
+        const masterArrayEtiquetas = [];
+        listaCoresInfo.forEach((info) => {
+          for (let q = 0; q < info.qtd; q++) {
+            masterArrayEtiquetas.push(info);
+          }
+        });
+
+        const capacidadePorPagina = 14;
+        for (let i = 0; i < masterArrayEtiquetas.length; i += capacidadePorPagina) {
+          const fatiasLabels = masterArrayEtiquetas.slice(i, i + capacidadePorPagina);
+
+          const printPageA4 = document.createElement('div');
+          printPageA4.className = 'print-page';
+          const pageContent = document.createElement('div');
+          pageContent.className = 'page-content';
+
+          const row1 = document.createElement('div'); row1.className = 'row-vertical';
+          const row2 = document.createElement('div'); row2.className = 'row-vertical';
+          const row3 = document.createElement('div'); row3.className = 'row-horizontal';
+
+          fatiasLabels.forEach((labelData, index) => {
+            if (index < 6) {
+              row1.appendChild(fabricarNodeEtiqueta(nome, tamanho, labelData.cor, labelData.hex, true, labelData.codeString));
+            } else if (index < 12) {
+              row2.appendChild(fabricarNodeEtiqueta(nome, tamanho, labelData.cor, labelData.hex, true, labelData.codeString));
+            } else {
+              row3.appendChild(fabricarNodeEtiqueta(nome, tamanho, labelData.cor, labelData.hex, false, labelData.codeString));
+            }
+          });
+
+          pageContent.appendChild(row1);
+          pageContent.appendChild(row2);
+          pageContent.appendChild(row3);
+          printPageA4.appendChild(pageContent);
+          printArea.appendChild(printPageA4);
+        }
+      }
+    }
+
+    // === MOTOR GERADOR COM ELIMINADOR DE PÁGINAS EM BRANCO ===
+    function baixarPDFLote() {
+      const elementArea = document.getElementById('print-area');
+      const btn = document.getElementById('btnDownload');
+      const paginasA4 = document.querySelectorAll('.print-page');
+      
+      if(paginasA4.length === 0) {
+        alert("Adicione ao menos uma cor antes de exportar o PDF.");
+        return;
+      }
+
+      const originalScrollY = window.scrollY;
+      const originalScrollX = window.scrollX;
+
+      window.scrollTo(0, 0);
+
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      btn.innerText = "Compilando PDF (Aguarde)...";
+      btn.disabled = true;
+
+      paginasA4.forEach(p => p.style.boxShadow = "none");
+      elementArea.classList.add('pdf-export');
+
+      const nomeZiper = document.getElementById('inNome').value.trim();
+
+      const opt = {
+        margin:       0,
+        filename:     `Etiquetas_Zíper_${nomeZiper}.pdf`,
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { scale: 3, useCORS: true, logging: false, scrollX: 0, scrollY: 0 }, 
+        jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: 'before', selector: '.print-page' }
+      };
+
+      // Inicia a compilação do fluxo html2pdf
+      html2pdf().set(opt).from(elementArea).toPdf().get('pdf').then(function (pdf) {
+        // === INTERCEPTAÇÃO MANUAL DE EXCEÇÃO ===
+        const totalPaginasGeradas = pdf.internal.getNumberOfPages();
+        const totalPaginasEsperadas = document.querySelectorAll('.print-page').length;
+
+        // Se o renderizador automático criou páginas fantasmas extras no final, deleta-as cirurgicamente
+        if (totalPaginasGeradas > totalPaginasEsperadas) {
+          for (let p = totalPaginasGeradas; p > totalPaginasEsperadas; p--) {
+            pdf.deletePage(p);
+          }
+        }
+      }).save().then(() => {
+        // Restaura o ambiente do navegador após o término do download
+        document.body.style.overflow = originalOverflow;
+        elementArea.classList.remove('pdf-export');
+        paginasA4.forEach(p => p.style.boxShadow = "0 0 12px rgba(0,0,0,0.15)");
+        window.scrollTo(originalScrollX, originalScrollY);
+
+        btn.innerText = "Baixar PDF Completo";
+        btn.disabled = false;
+      }).catch((err) => {
+        console.error(err);
+        document.body.style.overflow = originalOverflow;
+        elementArea.classList.remove('pdf-export');
+        paginasA4.forEach(p => p.style.boxShadow = "0 0 12px rgba(0,0,0,0.15)");
+        window.scrollTo(originalScrollX, originalScrollY);
+        btn.disabled = false;
+        btn.innerText = "Baixar PDF Completo";
+      });
+    }
+  </script>
+
+</body>
+</html>
