@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Polaroide</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/smartcrop/2.0.5/smartcrop.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --primary: #4F46E5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+
+        #upload-zone {
+            width: 100%;
+            max-width: 600px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        #upload-zone:hover, #upload-zone.dragover {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background-color: #4338ca; }
+        .btn-success { background-color: #10b981; }
+        .btn-success:hover { background-color: #059669; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        #controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        #pages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        /* Papel 15x10cm na Tela */
+        .page {
+            width: 15cm;
+            height: 10cm;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        .photo-wrapper {
+            position: absolute;
+            top: 0.95cm; 
+            width: 5.75cm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .left-photo { left: 0.75cm; }
+        .right-photo { right: 0.75cm; }
+
+        .photo-container {
+            width: 5.75cm;
+            height: 6.75cm;
+            cursor: pointer;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .photo-container::after {
+            content: "Clique para ajustar o corte";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .photo-container:hover::after { opacity: 1; }
+
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background-color: #f1f5f9;
+            display: block;
+        }
+
+        /* Input da Legenda */
+        .photo-caption {
+            width: 95%;
+            margin-top: 0.3cm;
+            padding: 5px;
+            text-align: center;
+            border: 1px dashed #cbd5e1;
+            border-radius: 4px;
+            background: transparent;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            color: #333;
+            transition: border-color 0.2s;
+        }
+        .photo-caption:focus {
+            outline: none;
+            border-color: var(--primary);
+            border-style: solid;
+        }
+
+        /* Menu Flutuante de Formatação de Texto */
+        .formatting-menu {
+            display: none; /* Só aparece quando há texto */
+            gap: 5px;
+            margin-top: 5px;
+            background: #f8fafc;
+            padding: 6px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: center;
+        }
+        .formatting-menu select, .formatting-menu input, .formatting-menu button {
+            font-size: 12px;
+            padding: 4px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            color: #334155;
+        }
+        .formatting-menu button {
+            cursor: pointer;
+            font-weight: bold;
+            width: 28px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .formatting-menu button:hover { background: #e2e8f0; }
+        .formatting-menu button.active {
+            background: #94a3b8;
+            color: white;
+            border-color: #64748b;
+        }
+
+        /* Modal do Cropper */
+        #cropper-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+        }
+        .img-container {
+            width: 100%;
+            max-height: 60vh;
+            margin-bottom: 20px;
+        }
+        .img-container img { max-width: 100%; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center; margin-bottom: 10px;">
+        <h2>Gerador de Fotos Polaroide (10x15)</h2>
+        <p style="color: #64748b;">Faça o upload de suas fotos e gere um arquivo PDF pronto para impressão no tamanho 10x15cm.</p>
+    </div>
+
+    <div id="upload-zone">
+        <svg style="width:50px; height:50px; color:#94a3b8; margin-bottom:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        <h3 style="margin: 0; color: #334155;">Arraste os arquivos para cá</h3>
+        <p style="color: #64748b;">ou</p>
+        <button class="btn" onclick="document.getElementById('file-input').click()">Selecionar Fotos</button>
+        <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+    </div>
+
+    <div id="controls" style="display: none;">
+        <button class="btn btn-success" onclick="gerarPDF()">📄 Gerar PDF</button>
+        <button class="btn btn-danger" onclick="limparTudo()">🗑️ Limpar Tudo</button>
+    </div>
+
+    <div id="pages-container"></div>
+
+    <div id="cropper-modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Ajustar Corte</h3>
+            <div class="img-container">
+                <img id="cropper-image" src="" alt="Imagem para corte">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" style="background-color: #64748b;" onclick="fecharModal()">Cancelar</button>
+                <button class="btn" onclick="salvarCorteManual()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const pagesContainer = document.getElementById('pages-container');
+        const controls = document.getElementById('controls');
+        const modal = document.getElementById('cropper-modal');
+        const cropperImgElement = document.getElementById('cropper-image');
+        
+        let polaroidCount = 0;
+        let currentPage = null;
+        let cropper = null;
+        let polaroidAtualEdicao = null;
+
+        const CROP_ASPECT_RATIO = 5.75 / 6.75;
+        const TARGET_W = Math.round(5.75 * 118); 
+        const TARGET_H = Math.round(6.75 * 118); 
+
+        // Eventos Drag & Drop
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('dragover'); });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+            fileInput.value = "";
+        });
+
+        function handleFiles(files) {
+            if(files.length > 0) controls.style.display = 'flex';
+            
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => { processarImagem(e.target.result); };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function processarImagem(imageSrc) {
+            const imgOriginal = new Image();
+            imgOriginal.src = imageSrc;
+            
+            imgOriginal.onload = () => {
+                SmartCrop.crop(imgOriginal, { width: TARGET_W, height: TARGET_H }).then(result => {
+                    const crop = result.topCrop;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = TARGET_W;
+                    canvas.height = TARGET_H;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.drawImage(
+                        imgOriginal, 
+                        crop.x, crop.y, crop.width, crop.height, 
+                        0, 0, TARGET_W, TARGET_H
+                    );
+
+                    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                    adicionarNaPagina(croppedDataUrl, imageSrc); 
+                });
+            };
+        }
+
+        function adicionarNaPagina(croppedSrc, originalSrc) {
+            if (polaroidCount % 2 === 0) {
+                currentPage = document.createElement('div');
+                currentPage.className = 'page';
+                pagesContainer.appendChild(currentPage);
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = polaroidCount % 2 === 0 ? 'photo-wrapper left-photo' : 'photo-wrapper right-photo';
+
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'photo-container';
+            
+            const imgElement = document.createElement('img');
+            imgElement.src = croppedSrc;
+            
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.className = 'photo-caption';
+            textInput.placeholder = 'Digite uma legenda (opcional)';
+            // Estilos padrão do JS para não dar erro de leitura nula depois
+            textInput.style.fontFamily = 'Arial';
+            textInput.style.fontSize = '14px';
+            textInput.style.letterSpacing = '0px';
+            textInput.style.fontWeight = 'normal';
+            textInput.style.fontStyle = 'normal';
+
+            // Menu de Formatação
+            const menu = document.createElement('div');
+            menu.className = 'formatting-menu';
+            menu.innerHTML = `
+                <select class="fmt-font" title="Fonte" style="width: 100px;">
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Tahoma">Tahoma</option>
+                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Comic Sans MS">Comic Sans</option>
+                    <option value="Garamond">Garamond</option>
+                    <option value="Palatino Linotype">Palatino</option>
+                    <option value="Lucida Sans Unicode">Lucida Sans</option>
+                    <option value="Arial Black">Arial Black</option>
+                    <option value="Brush Script MT">Brush Script</option>
+                    <option value="Century Gothic">Century Gothic</option>
+                </select>
+                <input type="number" class="fmt-size" title="Tamanho" value="14" min="8" max="40" style="width: 45px;">
+                <input type="number" class="fmt-space" title="Espaçamento das letras" value="0" min="-5" max="20" style="width: 45px;">
+                <button class="fmt-bold" title="Negrito">B</button>
+                <button class="fmt-italic" title="Itálico" style="font-style: italic;">I</button>
+            `;
+
+            imgContainer.appendChild(imgElement);
+            wrapper.appendChild(imgContainer);
+            wrapper.appendChild(textInput);
+            wrapper.appendChild(menu);
+            currentPage.appendChild(wrapper);
+
+            imgContainer.addEventListener('click', () => {
+                abrirModalEdicao(imgElement, originalSrc);
+            });
+
+            // Lógica do Menu de Formatação
+            textInput.addEventListener('input', () => {
+                if (textInput.value.trim().length > 0) {
+                    menu.style.display = 'flex';
+                } else {
+                    menu.style.display = 'none';
+                }
+            });
+
+            const fontSel = menu.querySelector('.fmt-font');
+            const sizeInp = menu.querySelector('.fmt-size');
+            const spaceInp = menu.querySelector('.fmt-space');
+            const boldBtn = menu.querySelector('.fmt-bold');
+            const italicBtn = menu.querySelector('.fmt-italic');
+
+            fontSel.addEventListener('change', () => textInput.style.fontFamily = fontSel.value);
+            sizeInp.addEventListener('input', () => textInput.style.fontSize = sizeInp.value + 'px');
+            spaceInp.addEventListener('input', () => textInput.style.letterSpacing = spaceInp.value + 'px');
+            
+            boldBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Evita recarregar a tela em alguns navegadores
+                const isBold = textInput.style.fontWeight === 'bold';
+                textInput.style.fontWeight = isBold ? 'normal' : 'bold';
+                boldBtn.classList.toggle('active');
+            });
+            
+            italicBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isItalic = textInput.style.fontStyle === 'italic';
+                textInput.style.fontStyle = isItalic ? 'normal' : 'italic';
+                italicBtn.classList.toggle('active');
+            });
+
+            polaroidCount++;
+        }
+
+        /* ======== GERAÇÃO DO PDF ======== */
+        function gerarPDF() {
+            if (polaroidCount === 0) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'cm',
+                format: [15, 10]
+            });
+
+            const wrappers = document.querySelectorAll('.photo-wrapper');
+            
+            wrappers.forEach((wrapper, index) => {
+                const img = wrapper.querySelector('.photo-container img');
+                const textInput = wrapper.querySelector('.photo-caption');
+                const customText = textInput.value.trim();
+                
+                const isLeft = (index % 2 === 0);
+                
+                if (isLeft && index !== 0) { doc.addPage(); }
+
+                const x = isLeft ? 0.75 : 8.5; 
+                const y = 0.95; 
+                const width = 5.75;
+                const height = 6.75;
+
+                // Desenha a imagem principal
+                doc.addImage(img.src, 'JPEG', x, y, width, height);
+
+                // Se houver texto, desenhamos ele em um Canvas invisível para não quebrar 
+                // a limitação de fontes restritas do formato PDF padrão, e exportamos como Imagem.
+                if (customText !== "") {
+                    const fontFamily = textInput.style.fontFamily;
+                    const fontSizePx = parseFloat(textInput.style.fontSize);
+                    const isBold = textInput.style.fontWeight === 'bold';
+                    const isItalic = textInput.style.fontStyle === 'italic';
+                    const letterSpacingPx = parseFloat(textInput.style.letterSpacing);
+
+                    // Escala x4 para garantir resolução de leitura de gráfica no PDF
+                    const scale = 4; 
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const cssFontSize = fontSizePx * scale;
+                    const fontStr = `${isItalic ? 'italic' : 'normal'} ${isBold ? 'bold' : 'normal'} ${cssFontSize}px "${fontFamily}"`;
+                    
+                    ctx.font = fontStr;
+                    // Suporte a espaçamento em canvas modernos
+                    ctx.letterSpacing = `${letterSpacingPx * scale}px`;
+                    
+                    const metrics = ctx.measureText(customText);
+                    const textWidth = metrics.width;
+                    const textHeight = cssFontSize * 1.5; 
+                    
+                    canvas.width = textWidth + (20 * scale);
+                    canvas.height = textHeight + (10 * scale);
+                    
+                    // Remonta o contexto após o canvas ser redimensionado
+                    ctx.font = fontStr;
+                    ctx.letterSpacing = `${letterSpacingPx * scale}px`;
+                    ctx.fillStyle = '#333333';
+                    ctx.textBaseline = 'top';
+                    ctx.textAlign = 'center';
+                    
+                    // Pinta o texto perfeitamente centralizado no canvas
+                    ctx.fillText(customText, canvas.width / 2, 5 * scale);
+                    
+                    const textDataUrl = canvas.toDataURL('image/png');
+                    
+                    // Transforma os Pixels nativos do CSS em Centímetros literais para o jsPDF
+                    // Proporção matemática padrão da web: 1px = 0.026458333 cm
+                    const pdfWidthCm = (canvas.width / scale) * 0.026458333;
+                    const pdfHeightCm = (canvas.height / scale) * 0.026458333;
+                    
+                    const textX = x + (width / 2) - (pdfWidthCm / 2); // Alinha ao centro da foto
+                    const textY = y + height + 0.4; // Coloca um pouco abaixo da base da foto
+                    
+                    doc.addImage(textDataUrl, 'PNG', textX, textY, pdfWidthCm, pdfHeightCm);
+                }
+            });
+
+            doc.save('fotos_10x15.pdf');
+        }
+
+        function abrirModalEdicao(imgElement, originalSrc) {
+            polaroidAtualEdicao = imgElement;
+            cropperImgElement.src = originalSrc;
+            modal.style.display = 'flex';
+            if (cropper) { cropper.destroy(); }
+            cropper = new Cropper(cropperImgElement, {
+                aspectRatio: CROP_ASPECT_RATIO,
+                viewMode: 1,
+                autoCropArea: 1,
+            });
+        }
+
+        function fecharModal() {
+            modal.style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+        }
+
+        function salvarCorteManual() {
+            if (!cropper) return;
+            const canvas = cropper.getCroppedCanvas({ width: TARGET_W, height: TARGET_H, fillColor: '#fff' });
+            polaroidAtualEdicao.src = canvas.toDataURL('image/jpeg', 0.95);
+            fecharModal();
+        }
+
+        function limparTudo() {
+            pagesContainer.innerHTML = '';
+            polaroidCount = 0;
+            controls.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
