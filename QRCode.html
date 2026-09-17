@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de QR Code</title>
+  <!-- Biblioteca estável qrcode.js via CDNJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    input {
+      padding: 8px 10px;
+      width: 220px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #qrcode {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    #downloadLink {
+      display: none;
+      margin-top: 15px;
+      text-decoration: none;
+      color: #007bff;
+      font-weight: bold;
+    }
+    #downloadLink:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Gerador de QR Code</h2>
+    <input type="text" id="qrInput" placeholder="Digite o texto ou URL" />
+    <button onclick="gerarQRCode()">Gerar</button>
+    <br>
+    <div id="qrcode"></div>
+    <br>
+    <a id="downloadLink" href="#" download="qrcode.png">Baixar PNG</a>
+  </div>
+
+  <script>
+    let qrInstancia = null;
+
+    function gerarQRCode() {
+      const texto = document.getElementById('qrInput').value.trim();
+      const qrContainer = document.getElementById('qrcode');
+      const downloadLink = document.getElementById('downloadLink');
+
+      if (!texto) {
+        alert("Digite um texto ou URL válido!");
+        return;
+      }
+
+      // Limpa QR Code anterior
+      qrContainer.innerHTML = "";
+
+      // Gera novo QR Code
+      qrInstancia = new QRCode(qrContainer, {
+        text: texto,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // Aguarda um pequeno instante para pegar a imagem gerada para o link de download
+      setTimeout(() => {
+        const img = qrContainer.querySelector('img');
+        const canvas = qrContainer.querySelector('canvas');
+
+        // Pega a URL da imagem (seja do canvas ou da tag img gerada pela lib)
+        let imgURI = "";
+        if (img && img.src && img.src.startsWith('data:image')) {
+          imgURI = img.src;
+        } else if (canvas) {
+          imgURI = canvas.toDataURL("image/png");
+        }
+
+        if (imgURI) {
+          const nomeArquivo = texto.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 20);
+          downloadLink.href = imgURI;
+          downloadLink.download = `${nomeArquivo || 'qrcode'}.png`;
+          downloadLink.style.display = "inline-block";
+          downloadLink.textContent = "Baixar PNG";
+        }
+      }, 100);
+    }
+  </script>
+
+</body>
+</html>
