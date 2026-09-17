@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Código de Barras</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <link rel="icon" type="image/x-icon" href="/images/barcode.png">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    input {
+      padding: 8px 10px;
+      width: 200px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Gerador de Código de Barras</h2>
+    <input type="text" id="barcodeInput" placeholder="Digite o código" />
+    <button onclick="gerarCodigoBarras()">Gerar</button>
+    <br>
+    <canvas id="barcodeCanvas"></canvas>
+    <br>
+    <a id="downloadLink" href="#" download="codigo-de-barras.png" style="display:none;">Baixar PNG</a>
+  </div>
+
+    <script>
+    function gerarCodigoBarras() {
+      const codigo = document.getElementById('barcodeInput').value.trim();
+      const canvas = document.getElementById('barcodeCanvas');
+      const downloadLink = document.getElementById('downloadLink');
+
+      if (!codigo) {
+        alert("Digite um código válido!");
+        return;
+      }
+
+      // Gera o código de barras no canvas
+      JsBarcode(canvas, codigo, {
+        format: "CODE128",
+        displayValue: true,
+        fontSize: 18,
+        lineColor: "#000",
+        width: 2,
+        height: 80,
+        margin: 10,
+        background: "transparent"
+      });
+
+      // Define link para download com o nome igual ao código
+      const dataURL = canvas.toDataURL("image/png");
+      downloadLink.href = dataURL;
+      downloadLink.download = `${codigo}.png`;
+      downloadLink.style.display = "inline-block";
+      downloadLink.textContent = "Baixar PNG";
+    }
+  </script>
+</body>
+</html>
